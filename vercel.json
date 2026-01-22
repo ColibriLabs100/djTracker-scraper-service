@@ -1,4 +1,9 @@
 {
+  "functions": {
+    "api/cron": {
+      "maxDuration": 15
+    }
+  },
   "crons": [
     {
       "path": "/api/cron",
