@@ -4,6 +4,7 @@ const { scrapeTrumpTruth, scrapeTelegramWeb } = require('./scraper.js');
 const { sql } = require('@vercel/postgres');
 
 const app = express();
+app.use(express.json());
 const PORT = process.env.PORT || 3000;
 
 app.get('/', (req, res) => {
@@ -58,10 +59,41 @@ async function scrapeAndStorePosts() {
   }
 }
 
+app.post('/api/posts/:id/react', async (req, res) => {
+  const { id } = req.params;
+  const { deviceId, reactionType } = req.body;
+
+  if (!deviceId || !reactionType) {
+    return res.status(400).send('deviceId and reactionType are required.');
+  }
+
+  try {
+    await sql`
+      INSERT INTO reactions (post_id, device_id, reaction_type)
+      VALUES (${id}, ${deviceId}, ${reactionType})
+      ON CONFLICT (post_id, device_id)
+      DO UPDATE SET reaction_type = ${reactionType};
+    `;
+    res.status(201).send('Reaction saved.');
+  } catch (error) {
+    console.error('Error saving reaction:', error);
+    res.status(500).send('Failed to save reaction.');
+  }
+});
+
 app.get('/posts/all', async (req, res) => {
   try {
-    // 3. Fetch all posts from the database
-    const { rows } = await sql`SELECT * FROM posts ORDER BY date DESC;`;
+    // 3. Fetch all posts from the database with reaction counts
+    const { rows } = await sql`
+      SELECT
+        p.*,
+        COALESCE(SUM(CASE WHEN r.reaction_type = 'like' THEN 1 ELSE 0 END), 0)::int AS likes,
+        COALESCE(SUM(CASE WHEN r.reaction_type = 'laugh' THEN 1 ELSE 0 END), 0)::int AS laughs
+      FROM posts p
+      LEFT JOIN reactions r ON p.id = r.post_id
+      GROUP BY p.id
+      ORDER BY p.date DESC;
+    `;
 
     // 4. Return results
     res.json(rows);
