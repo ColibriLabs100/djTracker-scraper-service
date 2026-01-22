@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const { scrapeTrumpTruth, scrapeTelegramWeb } = require('./scraper.js');
 const { sql } = require('@vercel/postgres');
+const { sendPushNotification } = require('./firebase.js');
 
 const app = express();
 app.use(express.json());
@@ -43,6 +44,8 @@ async function scrapeAndStorePosts() {
     ...telegramPosts.map(p => ({ ...p, source: 'Telegram' }))
   ];
 
+  let newPostsFound = false;
+
   // 2. Insert new posts into the database
   for (const post of allScrapedPosts) {
     const postDate = new Date(post.date);
@@ -51,13 +54,52 @@ async function scrapeAndStorePosts() {
       continue;
     }
     // The sql template helper automatically sanitizes inputs
-    await sql`
+    const result = await sql`
       INSERT INTO posts (text, date, source)
       VALUES (${post.text}, ${postDate.toISOString()}, ${post.source})
       ON CONFLICT (text, date, source) DO NOTHING;
     `;
+
+    if (result.rowCount > 0) {
+      newPostsFound = true;
+    }
+  }
+
+  if (newPostsFound) {
+    console.log('New posts found, sending notifications...');
+    // 3. Fetch all device tokens
+    const { rows: devices } = await sql`SELECT push_token FROM devices;`;
+    const tokens = devices.map(d => d.push_token);
+
+    // 4. Send notifications
+    for (const token of tokens) {
+      await sendPushNotification(token, 'New DJT Post!', 'A new post from has been detected.');
+    }
+  } else {
+    console.log('No new posts found.');
   }
 }
+
+app.post('/api/devices', async (req, res) => {
+  const { deviceId, pushToken } = req.body;
+
+  if (!deviceId || !pushToken) {
+    return res.status(400).send('deviceId and pushToken are required.');
+  }
+
+  try {
+    await sql`
+      INSERT INTO devices (device_id, push_token)
+      VALUES (${deviceId}, ${pushToken})
+      ON CONFLICT (device_id)
+      DO UPDATE SET push_token = ${pushToken};
+    `;
+    res.status(201).send('Device registered.');
+  } catch (error) {
+    console.error('Error registering device:', error);
+    res.status(500).send('Failed to register device.');
+  }
+});
 
 app.post('/api/posts/:id/react', async (req, res) => {
   const { id } = req.params;

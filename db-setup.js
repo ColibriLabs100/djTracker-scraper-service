@@ -22,6 +22,13 @@ async function setupDatabase() {
         UNIQUE(post_id, device_id)
       );
     `;
+    await sql`
+      CREATE TABLE IF NOT EXISTS devices (
+        id SERIAL PRIMARY KEY,
+        device_id VARCHAR(255) NOT NULL UNIQUE,
+        push_token VARCHAR(255) NOT NULL UNIQUE
+      );
+    `;
     console.log('Database table setup complete.');
   } catch (error) {
     console.error('Error setting up database:', error);
