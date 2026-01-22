@@ -56,7 +56,24 @@ async function scrapeTelegramWeb() {
       });
     });
 
-    return posts.map(post => ({ text: post, date: new Date().toISOString() }));
+    const keywords = ['trump:', 'trump-', 'trump -', 'trump - ', '*trump', '*trump:', '*trump -', '*trump -'];
+    
+    const filteredPosts = posts
+      .filter(post => {
+        const lowerCasePost = post.toLowerCase();
+        return keywords.some(keyword => lowerCasePost.includes(keyword.replace('*', '')));
+      })
+      .map(post => {
+        let cleanPost = post;
+        keywords.forEach(keyword => {
+          // Create a regex to remove the keyword, ignoring case and handling the wildcard '*'
+          const regex = new RegExp(keyword.replace('*', ''), 'gi');
+          cleanPost = cleanPost.replace(regex, '');
+        });
+        return { text: cleanPost.trim(), date: new Date().toISOString() };
+      });
+
+    return filteredPosts;
   } finally {
     if (browser) {
       await browser.close();
