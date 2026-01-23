@@ -13,12 +13,13 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@sparticuz/chromium": "^123.0.1",
     "@vercel/postgres": "^0.10.0",
     "cheerio": "^1.1.2",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "firebase-admin": "^13.6.0",
-    "puppeteer": "^24.36.0"
+    "puppeteer-core": "^24.36.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.11"
