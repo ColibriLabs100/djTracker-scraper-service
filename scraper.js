@@ -1,14 +1,9 @@
-const chromium = require('@sparticuz/chromium');
-const puppeteer = require('puppeteer-core');
+const puppeteer = require('puppeteer');
 
 async function getBrowser() {
   return puppeteer.launch({
-    args: chromium.args,
-    defaultViewport: chromium.defaultViewport,
-    executablePath: await chromium.executablePath(),
-    headless: chromium.headless,
-    ignoreHTTPSErrors: true,
-    timeout: 60000,
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox']
   });
 }
 
@@ -17,18 +12,18 @@ async function scrapeTrumpTruth() {
   try {
     browser = await getBrowser();
     const page = await browser.newPage();
-    await page.goto('https://trumpstruth.org', { waitUntil: 'networkidle2' });
+    page.setDefaultNavigationTimeout(60000);
+    await page.goto('https://t.me/s/real_DonaldJTrump', { waitUntil: 'networkidle2' });
 
-    // Wait for the posts to be loaded
-    await page.waitForSelector('.status');
+    await page.waitForSelector('.tgme_widget_message_wrap');
 
-    const posts = await page.$$eval('.status', (statuses) => {
-      return statuses.map((status) => {
-        const textElement = status.querySelector('.status__content');
-        const dateElement = status.querySelector('.status-info__meta-item:last-child');
+    const posts = await page.$$eval('.tgme_widget_message_wrap', (messages) => {
+      return messages.map((message) => {
+        const textElement = message.querySelector('.tgme_widget_message_text');
+        const dateElement = message.querySelector('time.time');
         return {
-          text: textElement ? textElement.innerText : '',
-          date: dateElement ? dateElement.innerText : '',
+          text: textElement ? textElement.innerText.trim() : '',
+          date: dateElement ? dateElement.getAttribute('datetime') : new Date().toISOString(),
         };
       });
     });
@@ -46,6 +41,7 @@ async function scrapeTelegramWeb() {
   try {
     browser = await getBrowser();
     const page = await browser.newPage();
+    page.setDefaultNavigationTimeout(60000);
     await page.goto('https://t.me/s/walterbloomberg', { waitUntil: 'networkidle2' });
 
     await page.waitForSelector('.tgme_widget_message_text');
@@ -56,7 +52,7 @@ async function scrapeTelegramWeb() {
       });
     });
 
-    const keywords = ['trump:', 'trump-', 'trump -', 'trump - ', '*trump', '*trump:', '*trump -', '*trump -'];
+    const keywords = ['trump:', 'trump-', 'trump -', 'trump - ', '*trump', '*trump:', '*trump -', '*trump -', 'trump says he', 'trump says he\'ll', 'trump says hell'];
     
     const filteredPosts = posts
       .filter(post => {
@@ -70,6 +66,7 @@ async function scrapeTelegramWeb() {
           const regex = new RegExp(keyword.replace('*', ''), 'gi');
           cleanPost = cleanPost.replace(regex, '');
         });
+        cleanPost = cleanPost.replace(/\(@WalterBloomberg\)/gi, '');
         return { text: cleanPost.trim(), date: new Date().toISOString() };
       });
 

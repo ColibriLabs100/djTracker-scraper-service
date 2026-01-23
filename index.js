@@ -1,4 +1,4 @@
-require('dotenv').config();
+ require('dotenv').config();
 const express = require('express');
 const { scrapeTrumpTruth, scrapeTelegramWeb } = require('./scraper.js');
 const { sql } = require('@vercel/postgres');
@@ -73,7 +73,7 @@ async function scrapeAndStorePosts() {
 
     // 4. Send notifications
     for (const token of tokens) {
-      await sendPushNotification(token, 'New DJT Post!', 'A new post from has been detected.');
+      await sendPushNotification(token, 'New DJT Post!', 'A new post has been detected.');
     }
   } else {
     console.log('No new posts found.');
@@ -125,6 +125,7 @@ app.post('/api/posts/:id/react', async (req, res) => {
 
 app.get('/posts/all', async (req, res) => {
   try {
+    await scrapeAndStorePosts();
     // 3. Fetch all posts from the database with reaction counts
     const { rows } = await sql`
       SELECT
@@ -155,6 +156,19 @@ app.get('/api/cron', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
+});
+
+process.on('SIGINT', function() {
+  console.log( "\nGracefully shutting down from SIGINT (Ctrl-C)" );
+  process.exit(1);
+});
+
+process.on('exit', (code) => {
+  console.log(`About to exit with code: ${code}`);
+});
+
+server.on('close', () => {
+  console.log('Server closed');
 });
