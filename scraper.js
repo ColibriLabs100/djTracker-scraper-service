@@ -9,11 +9,9 @@ async function getBrowser() {
   });
 }
 
-async function scrapeTrumpTruth() {
-  let browser = null;
+async function scrapeTrumpTruth(browser) {
+  const page = await browser.newPage();
   try {
-    browser = await getBrowser();
-    const page = await browser.newPage();
     page.setDefaultNavigationTimeout(60000);
     await page.goto('https://t.me/s/real_DonaldJTrump', { waitUntil: 'networkidle2' });
 
@@ -32,17 +30,13 @@ async function scrapeTrumpTruth() {
     
     return posts.filter(post => post.text.trim() !== '');
   } finally {
-    if (browser) {
-      await browser.close();
-    }
+    await page.close();
   }
 }
 
-async function scrapeTelegramWeb() {
-  let browser = null;
+async function scrapeTelegramWeb(browser) {
+  const page = await browser.newPage();
   try {
-    browser = await getBrowser();
-    const page = await browser.newPage();
     page.setDefaultNavigationTimeout(60000);
     await page.goto('https://t.me/s/walterbloomberg', { waitUntil: 'networkidle2' });
 
@@ -74,10 +68,8 @@ async function scrapeTelegramWeb() {
 
     return filteredPosts;
   } finally {
-    if (browser) {
-      await browser.close();
-    }
+    await page.close();
   }
 }
 
-module.exports = { scrapeTrumpTruth, scrapeTelegramWeb };
+module.exports = { getBrowser, scrapeTrumpTruth, scrapeTelegramWeb };

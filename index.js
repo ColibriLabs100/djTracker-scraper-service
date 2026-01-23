@@ -1,6 +1,6 @@
  require('dotenv').config();
 const express = require('express');
-const { scrapeTrumpTruth, scrapeTelegramWeb } = require('./scraper.js');
+const { getBrowser, scrapeTrumpTruth, scrapeTelegramWeb } = require('./scraper.js');
 const { sql } = require('@vercel/postgres');
 const { sendPushNotification } = require('./firebase.js');
 
@@ -13,70 +13,90 @@ app.get('/', (req, res) => {
 });
 
 app.get('/posts/trump', async (req, res) => {
+  let browser = null;
   try {
-    const posts = await scrapeTrumpTruth();
+    browser = await getBrowser();
+    const posts = await scrapeTrumpTruth(browser);
     res.json(posts);
   } catch (error) {
     console.error('Error scraping posts:', error);
     res.status(500).send('Failed to scrape posts.');
+  } finally {
+    if (browser) {
+      await browser.close();
+    }
   }
 });
 
 app.get('/posts/telegram', async (req, res) => {
+  let browser = null;
   try {
-    const posts = await scrapeTelegramWeb();
+    browser = await getBrowser();
+    const posts = await scrapeTelegramWeb(browser);
     res.json(posts);
   } catch (error) {
     console.error('Error scraping Telegram:', error);
     res.status(500).send('Failed to scrape Telegram.');
+  } finally {
+    if (browser) {
+      await browser.close();
+    }
   }
 });
 
 async function scrapeAndStorePosts() {
-  // 1. Scrape sources
-  const [trumpPosts, telegramPosts] = await Promise.all([
-    scrapeTrumpTruth(),
-    scrapeTelegramWeb()
-  ]);
+  let browser = null;
+  try {
+    browser = await getBrowser();
+    // 1. Scrape sources
+    const [trumpPosts, telegramPosts] = await Promise.all([
+      scrapeTrumpTruth(browser),
+      scrapeTelegramWeb(browser)
+    ]);
 
-  const allScrapedPosts = [
-    ...trumpPosts.map(p => ({ ...p, source: 'Trump Truth' })),
-    ...telegramPosts.map(p => ({ ...p, source: 'Telegram' }))
-  ];
+    const allScrapedPosts = [
+      ...trumpPosts.map(p => ({ ...p, source: 'Trump Truth' })),
+      ...telegramPosts.map(p => ({ ...p, source: 'Telegram' }))
+    ];
 
-  let newPostsFound = false;
+    let newPostsFound = false;
 
-  // 2. Insert new posts into the database
-  for (const post of allScrapedPosts) {
-    const postDate = new Date(post.date);
-    if (isNaN(postDate.getTime())) {
-      console.warn('Skipping invalid date:', post.date);
-      continue;
+    // 2. Insert new posts into the database
+    for (const post of allScrapedPosts) {
+      const postDate = new Date(post.date);
+      if (isNaN(postDate.getTime())) {
+        console.warn('Skipping invalid date:', post.date);
+        continue;
+      }
+      // The sql template helper automatically sanitizes inputs
+      const result = await sql`
+        INSERT INTO posts (text, date, source)
+        VALUES (${post.text}, ${postDate.toISOString()}, ${post.source})
+        ON CONFLICT (text, date, source) DO NOTHING;
+      `;
+
+      if (result.rowCount > 0) {
+        newPostsFound = true;
+      }
     }
-    // The sql template helper automatically sanitizes inputs
-    const result = await sql`
-      INSERT INTO posts (text, date, source)
-      VALUES (${post.text}, ${postDate.toISOString()}, ${post.source})
-      ON CONFLICT (text, date, source) DO NOTHING;
-    `;
 
-    if (result.rowCount > 0) {
-      newPostsFound = true;
+    if (newPostsFound) {
+      console.log('New posts found, sending notifications...');
+      // 3. Fetch all device tokens
+      const { rows: devices } = await sql`SELECT push_token FROM devices;`;
+      const tokens = devices.map(d => d.push_token);
+
+      // 4. Send notifications
+      for (const token of tokens) {
+        await sendPushNotification(token, 'New DJT Post!', 'A new post has been detected.');
+      }
+    } else {
+      console.log('No new posts found.');
     }
-  }
-
-  if (newPostsFound) {
-    console.log('New posts found, sending notifications...');
-    // 3. Fetch all device tokens
-    const { rows: devices } = await sql`SELECT push_token FROM devices;`;
-    const tokens = devices.map(d => d.push_token);
-
-    // 4. Send notifications
-    for (const token of tokens) {
-      await sendPushNotification(token, 'New DJT Post!', 'A new post has been detected.');
+  } finally {
+    if (browser) {
+      await browser.close();
     }
-  } else {
-    console.log('No new posts found.');
   }
 }
 
