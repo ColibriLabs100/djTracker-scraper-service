@@ -1,0 +1,26 @@
+{
+  "name": "djtracker_service",
+  "version": "1.0.1",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "nodemon index.js",
+    "db:setup": "node db-setup.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@sparticuz/chromium": "^143.0.4",
+    "@vercel/postgres": "^0.10.0",
+    "cheerio": "^1.1.2",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "firebase-admin": "^13.6.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.11"
+  }
+}

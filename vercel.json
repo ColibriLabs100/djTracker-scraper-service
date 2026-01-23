@@ -1,0 +1,9 @@
+{
+  "_comment": "On Vercel Hobby plan, cron jobs configured for a specific time (e.g., 0 0 * * *) may trigger anywhere within the hour (e.g., between 0:00 and 0:59). For more specific executions, a Pro plan upgrade is required.",
+  "crons": [
+    {
+      "path": "/api/cron",
+      "schedule": "0 0 * * *"
+    }
+  ]
+}
