@@ -192,6 +192,3 @@ process.on('exit', (code) => {
 server.on('close', () => {
   console.log('Server closed');
 });
-
-// Keep the process alive
-setInterval(() => {}, 1000 * 60 * 60);
