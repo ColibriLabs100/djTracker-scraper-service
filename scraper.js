@@ -1,13 +1,40 @@
 const chromium = require('@sparticuz/chromium');
 const puppeteer = require('puppeteer-core');
+const fs = require('fs');
+const path = require('path');
+const brotli = require('brotli');
 
 async function getBrowser() {
-  return await puppeteer.launch({
-    args: chromium.args,
-    defaultViewport: chromium.defaultViewport,
-    executablePath: process.env.VERCEL_ENV === 'production' ? '/tmp/chromium' : await chromium.executablePath(),
-    headless: chromium.headless,
-  });
+  if (process.env.VERCEL_ENV === 'production') {
+    const chromiumPath = '/tmp/chromium';
+    if (!fs.existsSync(chromiumPath)) {
+      const compressedChromiumPath = path.join(
+        process.cwd(),
+        'node_modules',
+        '@sparticuz',
+        'chromium',
+        'bin',
+        'chromium.br'
+      );
+      const compressedChromium = fs.readFileSync(compressedChromiumPath);
+      const decompressedChromium = brotli.decompress(compressedChromium);
+      fs.writeFileSync(chromiumPath, decompressedChromium);
+      fs.chmodSync(chromiumPath, '755');
+    }
+    return await puppeteer.launch({
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: chromiumPath,
+      headless: chromium.headless,
+    });
+  } else {
+    return await puppeteer.launch({
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
+    });
+  }
 }
 
 async function scrapeTrumpTruth(browser) {
