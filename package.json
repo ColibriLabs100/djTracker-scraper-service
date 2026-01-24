@@ -22,7 +22,6 @@
     "firebase-admin": "^13.6.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.11",
-    "puppeteer": "^22.11.0"
+    "nodemon": "^3.1.11"
   }
 }

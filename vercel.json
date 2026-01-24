@@ -1,4 +1,13 @@
 {
+  "builds": [
+    {
+      "src": "index.js",
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": ["node_modules/@sparticuz/chromium/bin/**"]
+      }
+    }
+  ],
   "crons": [
     {
       "path": "/api/cron",

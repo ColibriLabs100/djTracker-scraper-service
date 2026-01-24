@@ -1,18 +1,13 @@
 const chromium = require('@sparticuz/chromium');
-const puppeteer = require('puppeteer');
-const puppeteerCore = require('puppeteer-core');
+const puppeteer = require('puppeteer-core');
 
 async function getBrowser() {
-  if (process.env.VERCEL_ENV === 'production') {
-    return await puppeteerCore.launch({
-      args: chromium.args,
-      defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(),
-      headless: chromium.headless,
-    });
-  } else {
-    return await puppeteer.launch();
-  }
+  return await puppeteer.launch({
+    args: chromium.args,
+    defaultViewport: chromium.defaultViewport,
+    executablePath: process.env.VERCEL_ENV === 'production' ? '/tmp/chromium' : await chromium.executablePath(),
+    headless: chromium.headless,
+  });
 }
 
 async function scrapeTrumpTruth(browser) {
