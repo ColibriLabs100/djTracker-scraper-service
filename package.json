@@ -13,12 +13,12 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "puppeteer": "^10.1.0",
     "@vercel/postgres": "^0.10.0",
     "cheerio": "^1.1.2",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
-    "firebase-admin": "^13.6.0"
+    "firebase-admin": "^13.6.0",
+    "puppeteer": "^24.36.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.11"
