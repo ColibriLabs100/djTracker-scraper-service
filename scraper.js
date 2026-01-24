@@ -13,7 +13,7 @@ async function getBrowser() {
 async function scrapeTrumpTruth(browser) {
   const page = await browser.newPage();
   try {
-    page.setDefaultNavigationTimeout(60000);
+    page.setDefaultNavigationTimeout(120000);
     await page.goto('https://t.me/s/real_DonaldJTrump', { waitUntil: 'networkidle2' });
 
     await page.waitForSelector('.tgme_widget_message_wrap');
@@ -38,7 +38,7 @@ async function scrapeTrumpTruth(browser) {
 async function scrapeTelegramWeb(browser) {
   const page = await browser.newPage();
   try {
-    page.setDefaultNavigationTimeout(60000);
+    page.setDefaultNavigationTimeout(120000);
     await page.goto('https://t.me/s/walterbloomberg', { waitUntil: 'networkidle2' });
 
     await page.waitForSelector('.tgme_widget_message_text');
