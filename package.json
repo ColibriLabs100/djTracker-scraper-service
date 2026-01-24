@@ -13,8 +13,8 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "@sparticuz/chromium": "^123.0.1",
-    "puppeteer-core": "^22.11.0",
+    "chrome-aws-lambda": "^10.1.0",
+    "puppeteer-core": "^10.1.0",
     "@vercel/postgres": "^0.10.0",
     "cheerio": "^1.1.2",
     "dotenv": "^17.2.3",
