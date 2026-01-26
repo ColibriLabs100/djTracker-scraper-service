@@ -116,7 +116,7 @@ app.post('/api/posts/:id/react', async (req, res) => {
   try {
     await sql`
       INSERT INTO reactions (post_id, device_id, reaction_type)
-      VALUES (${id}, ${deviceId}, ${reactionType})
+      VALUES (${parseInt(id)}, ${deviceId}, ${reactionType})
       ON CONFLICT (post_id, device_id)
       DO UPDATE SET reaction_type = ${reactionType};
     `;
