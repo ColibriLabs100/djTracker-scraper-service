@@ -1,7 +1,8 @@
 const chromium = require('chrome-aws-lambda');
+const puppeteer = require('puppeteer');
 
 async function getBrowser() {
-  return await chromium.puppeteer.launch({
+  return await puppeteer.launch({
     args: chromium.args,
     executablePath: await chromium.executablePath,
     headless: chromium.headless,
