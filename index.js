@@ -41,8 +41,8 @@ async function scrapeAndStorePosts() {
     ]);
 
     const allScrapedPosts = [
-      ...trumpPosts.map(p => ({ ...p, source: 'Trump Truth' })),
-      ...telegramPosts.map(p => ({ ...p, source: 'Telegram' }))
+      ...trumpPosts.map(p => ({ ...p, source: 'Truth Social' })),
+      ...telegramPosts.map(p => ({ ...p, source: 'Quoted' }))
     ];
 
     let newPostsFound = false;
