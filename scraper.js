@@ -2,9 +2,7 @@ const puppeteer = require('puppeteer-core');
 const chromium = require('@sparticuz/chromium');
 
 async function getBrowser() {
-  const executablePath = await chromium.executablePath({
-    cacheDir: '/tmp',
-  });
+  const executablePath = await chromium.executablePath();
   return await puppeteer.launch({
     args: chromium.args,
     executablePath: executablePath,
