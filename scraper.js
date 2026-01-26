@@ -1,73 +1,83 @@
-const puppeteer = require('puppeteer');
+const cheerio = require('cheerio');
 
-async function getBrowser() {
-  return await puppeteer.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
-  });
-}
+const HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+};
 
-async function scrapeTrumpTruth(browser) {
-  const page = await browser.newPage();
+async function fetchPage(url) {
   try {
-    page.setDefaultNavigationTimeout(120000);
-    await page.goto('https://t.me/s/real_DonaldJTrump', { waitUntil: 'networkidle2' });
-
-    await page.waitForSelector('.tgme_widget_message_wrap');
-
-    const posts = await page.$$eval('.tgme_widget_message_wrap', (messages) => {
-      return messages.map((message) => {
-        const textElement = message.querySelector('.tgme_widget_message_text');
-        const dateElement = message.querySelector('time.time');
-        return {
-          text: textElement ? textElement.innerText.trim() : '',
-          date: dateElement ? dateElement.getAttribute('datetime') : new Date().toISOString(),
-        };
-      });
+    const response = await fetch(url, { 
+      headers: HEADERS,
+      timeout: 10000 
     });
-    
-    return posts.filter(post => post.text.trim() !== '');
-  } finally {
-    await page.close();
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return await response.text();
+  } catch (error) {
+    console.error(`Failed to fetch ${url}:`, error);
+    throw error;
   }
 }
 
-async function scrapeTelegramWeb(browser) {
-  const page = await browser.newPage();
+async function scrapeTrumpTruth() {
   try {
-    page.setDefaultNavigationTimeout(120000);
-    await page.goto('https://t.me/s/walterbloomberg', { waitUntil: 'networkidle2' });
-
-    await page.waitForSelector('.tgme_widget_message_text');
-
-    const posts = await page.$$eval('.tgme_widget_message_text', (messages) => {
-      return messages.map((message) => {
-        return message.innerText;
-      });
-    });
-
-    const keywords = ['trump:', 'trump-', 'trump -', 'trump - ', '*trump', '*trump:', '*trump -', '*trump -', 'trump says he', 'trump says he\'ll', 'trump says hell'];
+    const html = await fetchPage('https://t.me/s/real_DonaldJTrump');
+    const $ = cheerio.load(html);
     
-    const filteredPosts = posts
-      .filter(post => {
-        const lowerCasePost = post.toLowerCase();
-        return keywords.some(keyword => lowerCasePost.includes(keyword.replace('*', '')));
-      })
-      .map(post => {
-        let cleanPost = post;
+    const posts = [];
+    $('.tgme_widget_message_wrap').each((i, elem) => {
+      const textElement = $(elem).find('.tgme_widget_message_text');
+      const dateElement = $(elem).find('time.time');
+      const text = textElement.text().trim();
+      const date = dateElement.attr('datetime') || new Date().toISOString();
+      
+      if (text) {
+        posts.push({ text, date });
+      }
+    });
+    
+    return posts;
+  } catch (error) {
+    console.error('Error scraping Trump Truth:', error);
+    return [];
+  }
+}
+
+async function scrapeTelegramWeb() {
+  try {
+    const html = await fetchPage('https://t.me/s/walterbloomberg');
+    const $ = cheerio.load(html);
+    
+    const keywords = ['trump:', 'trump-', 'trump -', 'trump - ', '*trump', '*trump:', '*trump -', 'trump says he', 'trump says he\'ll', 'trump says hell'];
+    
+    const posts = [];
+    $('.tgme_widget_message_text').each((i, elem) => {
+      const text = $(elem).text().trim();
+      const lowerCaseText = text.toLowerCase();
+      
+      // Check if post contains any trump-related keywords
+      if (keywords.some(keyword => lowerCaseText.includes(keyword.replace('*', '')))) {
+        let cleanText = text;
+        
+        // Remove keywords
         keywords.forEach(keyword => {
-          // Create a regex to remove the keyword, ignoring case and handling the wildcard '*'
           const regex = new RegExp(keyword.replace('*', ''), 'gi');
-          cleanPost = cleanPost.replace(regex, '');
+          cleanText = cleanText.replace(regex, '');
         });
-        cleanPost = cleanPost.replace(/\(@WalterBloomberg\)/gi, '');
-        return { text: cleanPost.trim(), date: new Date().toISOString() };
-      });
-
-    return filteredPosts;
-  } finally {
-    await page.close();
+        
+        // Remove @WalterBloomberg mention
+        cleanText = cleanText.replace(/\(@WalterBloomberg\)/gi, '').trim();
+        
+        if (cleanText) {
+          posts.push({ text: cleanText, date: new Date().toISOString() });
+        }
+      }
+    });
+    
+    return posts;
+  } catch (error) {
+    console.error('Error scraping Telegram Web:', error);
+    return [];
   }
 }
 
-module.exports = { getBrowser, scrapeTrumpTruth, scrapeTelegramWeb };
+module.exports = { scrapeTrumpTruth, scrapeTelegramWeb };

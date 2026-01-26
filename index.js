@@ -1,6 +1,6 @@
  require('dotenv').config();
 const express = require('express');
-const { getBrowser, scrapeTrumpTruth, scrapeTelegramWeb } = require('./scraper.js');
+const { scrapeTrumpTruth, scrapeTelegramWeb } = require('./scraper.js');
 const { sql } = require('@vercel/postgres');
 const { sendPushNotification } = require('./firebase.js');
 
@@ -13,45 +13,31 @@ app.get('/', (req, res) => {
 });
 
 app.get('/posts/trump', async (req, res) => {
-  let browser = null;
   try {
-    browser = await getBrowser();
-    const posts = await scrapeTrumpTruth(browser);
+    const posts = await scrapeTrumpTruth();
     res.json(posts);
   } catch (error) {
     console.error('Error scraping posts:', error);
     res.status(500).send('Failed to scrape posts.');
-  } finally {
-    if (browser) {
-      await browser.close();
-    }
   }
 });
 
 app.get('/posts/telegram', async (req, res) => {
-  let browser = null;
   try {
-    browser = await getBrowser();
-    const posts = await scrapeTelegramWeb(browser);
+    const posts = await scrapeTelegramWeb();
     res.json(posts);
   } catch (error) {
     console.error('Error scraping Telegram:', error);
     res.status(500).send('Failed to scrape Telegram.');
-  } finally {
-    if (browser) {
-      await browser.close();
-    }
   }
 });
 
 async function scrapeAndStorePosts() {
-  let browser = null;
   try {
-    browser = await getBrowser();
     // 1. Scrape sources
     const [trumpPosts, telegramPosts] = await Promise.all([
-      scrapeTrumpTruth(browser),
-      scrapeTelegramWeb(browser)
+      scrapeTrumpTruth(),
+      scrapeTelegramWeb()
     ]);
 
     const allScrapedPosts = [
@@ -93,10 +79,8 @@ async function scrapeAndStorePosts() {
     } else {
       console.log('No new posts found.');
     }
-  } finally {
-    if (browser) {
-      await browser.close();
-    }
+  } catch (error) {
+    console.error('Error scraping and storing posts:', error);
   }
 }
 
