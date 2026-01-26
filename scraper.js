@@ -18,7 +18,7 @@ async function fetchPage(url) {
   }
 }
 
-async function scrapeTrumpTruth() {
+async function scrapeTrumpTruth(lastScrapeTime) {
   try {
     const html = await fetchPage('https://t.me/s/real_DonaldJTrump');
     const $ = cheerio.load(html);
@@ -30,7 +30,8 @@ async function scrapeTrumpTruth() {
       const text = textElement.text().trim();
       const date = dateElement.attr('datetime') || new Date().toISOString();
       
-      if (text) {
+      // Only include posts newer than last scrape time
+      if (text && new Date(date) > new Date(lastScrapeTime)) {
         posts.push({ text, date });
       }
     });
@@ -42,7 +43,7 @@ async function scrapeTrumpTruth() {
   }
 }
 
-async function scrapeTelegramWeb() {
+async function scrapeTelegramWeb(lastScrapeTime) {
   try {
     const html = await fetchPage('https://t.me/s/walterbloomberg');
     const $ = cheerio.load(html);
@@ -67,8 +68,10 @@ async function scrapeTelegramWeb() {
         // Remove @WalterBloomberg mention
         cleanText = cleanText.replace(/\(@WalterBloomberg\)/gi, '').trim();
         
-        if (cleanText) {
-          posts.push({ text: cleanText, date: new Date().toISOString() });
+        const date = new Date().toISOString();
+        // Only include posts newer than last scrape time
+        if (cleanText && new Date(date) > new Date(lastScrapeTime)) {
+          posts.push({ text: cleanText, date });
         }
       }
     });

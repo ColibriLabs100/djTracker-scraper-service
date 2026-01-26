@@ -27,6 +27,13 @@ async function setupDatabase() {
         UNIQUE (post_id, device_id)
       );
     `;
+    await sql`
+      CREATE TABLE IF NOT EXISTS scrape_tracking (
+        id SERIAL PRIMARY KEY,
+        source VARCHAR(255) UNIQUE NOT NULL,
+        last_scrape_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `;
     console.log('Database setup complete.');
   } catch (error) {
     console.error('Error setting up database:', error);

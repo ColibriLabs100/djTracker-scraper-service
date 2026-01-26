@@ -34,10 +34,23 @@ app.get('/posts/telegram', async (req, res) => {
 
 async function scrapeAndStorePosts() {
   try {
-    // 1. Scrape sources
+    // 1. Get last scrape times for each source
+    const { rows: tracking } = await sql`
+      SELECT source, last_scrape_time FROM scrape_tracking;
+    `;
+    
+    const trackingMap = {};
+    tracking.forEach(t => {
+      trackingMap[t.source] = t.last_scrape_time;
+    });
+    
+    const truthSocialLastTime = trackingMap['Truth Social'] || new Date(0).toISOString();
+    const quotedLastTime = trackingMap['Quoted'] || new Date(0).toISOString();
+    
+    // 2. Scrape sources with last scrape times
     const [trumpPosts, telegramPosts] = await Promise.all([
-      scrapeTrumpTruth(),
-      scrapeTelegramWeb()
+      scrapeTrumpTruth(truthSocialLastTime),
+      scrapeTelegramWeb(quotedLastTime)
     ]);
 
     const allScrapedPosts = [
@@ -47,7 +60,7 @@ async function scrapeAndStorePosts() {
 
     let newPostsFound = false;
 
-    // 2. Insert new posts into the database
+    // 3. Insert new posts into the database
     for (const post of allScrapedPosts) {
       const postDate = new Date(post.date);
       if (isNaN(postDate.getTime())) {
@@ -66,13 +79,32 @@ async function scrapeAndStorePosts() {
       }
     }
 
+    // 4. Update last scrape times
+    if (trumpPosts.length > 0) {
+      await sql`
+        INSERT INTO scrape_tracking (source, last_scrape_time)
+        VALUES ('Truth Social', NOW())
+        ON CONFLICT (source)
+        DO UPDATE SET last_scrape_time = NOW();
+      `;
+    }
+    
+    if (telegramPosts.length > 0) {
+      await sql`
+        INSERT INTO scrape_tracking (source, last_scrape_time)
+        VALUES ('Quoted', NOW())
+        ON CONFLICT (source)
+        DO UPDATE SET last_scrape_time = NOW();
+      `;
+    }
+
     if (newPostsFound) {
       console.log('New posts found, sending notifications...');
-      // 3. Fetch all device tokens
+      // 5. Fetch all device tokens
       const { rows: devices } = await sql`SELECT push_token FROM devices;`;
       const tokens = devices.map(d => d.push_token);
 
-      // 4. Send notifications
+      // 6. Send notifications
       for (const token of tokens) {
         await sendPushNotification(token, 'New DJT Post!', 'A new post has been detected.');
       }
@@ -129,8 +161,7 @@ app.post('/api/posts/:id/react', async (req, res) => {
 
 app.get('/posts/all', async (req, res) => {
   try {
-    await scrapeAndStorePosts();
-    // 3. Fetch all posts from the database with reaction counts
+    // Fetch all posts from the database with reaction counts
     const { rows } = await sql`
       SELECT
         p.*,
@@ -142,7 +173,7 @@ app.get('/posts/all', async (req, res) => {
       ORDER BY p.date DESC;
     `;
 
-    // 4. Return results
+    // Return results
     res.json(rows);
   } catch (error) {
     console.error('Error fetching all posts:', error);
