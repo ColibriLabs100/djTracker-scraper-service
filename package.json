@@ -15,11 +15,11 @@
   "dependencies": {
     "@vercel/postgres": "^0.10.0",
     "cheerio": "^1.1.2",
-    "chrome-aws-lambda": "^10.1.0",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "firebase-admin": "^13.6.0",
-    "puppeteer-core": "^10.1.0"
+    "puppeteer-core": "^10.1.0",
+    "@sparticuz/chromium-min": "^119.0.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.11"
