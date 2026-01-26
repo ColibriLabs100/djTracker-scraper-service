@@ -19,7 +19,7 @@
     "express": "^5.2.1",
     "firebase-admin": "^13.6.0",
     "puppeteer-core": "^10.1.0",
-    "@sparticuz/chromium-min": "^119.0.0"
+    "@sparticuz/chromium": "^119.0.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.11"
