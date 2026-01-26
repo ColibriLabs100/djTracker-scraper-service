@@ -1,9 +1,14 @@
-const chromium = require('chrome-aws-lambda');
+const puppeteer = require('puppeteer-core');
+const chromium = require('@sparticuz/chromium');
 
 async function getBrowser() {
-  return await chromium.puppeteer.launch({
+  const executablePath = await chromium.executablePath({
+    cacheDir: '/tmp',
+  });
+  
+  return await puppeteer.launch({
     args: chromium.args,
-    executablePath: await chromium.executablePath,
+    executablePath: executablePath,
     headless: chromium.headless,
   });
 }
