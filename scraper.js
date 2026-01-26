@@ -2,9 +2,10 @@ const puppeteer = require('puppeteer-core');
 const chromium = require('@sparticuz/chromium-min');
 
 async function getBrowser() {
+  const executablePath = await chromium.executablePath();
   return await puppeteer.launch({
     args: chromium.args,
-    executablePath: await chromium.executablePath,
+    executablePath: executablePath,
     headless: chromium.headless,
   });
 }
