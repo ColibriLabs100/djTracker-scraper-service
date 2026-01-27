@@ -4,10 +4,13 @@ const { scrapeTrumpTruth, scrapeTelegramWeb } = require('./scraper.js');
 const { sql } = require('@vercel/postgres');
 const { sendPushNotification } = require('./firebase.js');
 const { getMarketData } = require('./alphaVantage.js');
+const { format } = require('date-fns-tz');
 
 const app = express();
 app.use(express.json());
 const PORT = process.env.PORT || 3000;
+
+const { format } = require('date-fns-tz');
 
 app.get('/', (req, res) => {
   res.send('Hello from your new backend server!');
@@ -80,10 +83,14 @@ async function scrapeAndStorePosts() {
         console.warn('Skipping invalid date:', post.date);
         continue;
       }
+      
+      // Convert to Eastern Time for storing in the DB
+      const easternTime = format(postDate, "yyyy-MM-dd'T'HH:mm:ss.SSSXXX", { timeZone: 'America/New_York' });
+      
       // The sql template helper automatically sanitizes inputs
       const result = await sql`
         INSERT INTO posts (text, date, source)
-        VALUES (${post.text}, ${postDate.toISOString()}, ${post.source})
+        VALUES (${post.text}, ${easternTime}, ${post.source})
         ON CONFLICT (text, date, source) DO NOTHING;
       `;
 
