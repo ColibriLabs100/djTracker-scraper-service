@@ -98,18 +98,19 @@ async function scrapeAndStorePosts() {
     }
 
     // 4. Update last scrape times for both sources
+    const easternScrapeTime = format(scrapeTime, "yyyy-MM-dd'T'HH:mm:ss.SSS", { timeZone: 'America/New_York' });
     await Promise.all([
       sql`
         INSERT INTO scrape_tracking (source, last_scrape_time)
-        VALUES ('Truth Social', ${scrapeTime.toISOString()})
+        VALUES ('Truth Social', ${easternScrapeTime})
         ON CONFLICT (source)
-        DO UPDATE SET last_scrape_time = ${scrapeTime.toISOString()};
+        DO UPDATE SET last_scrape_time = ${easternScrapeTime};
       `,
       sql`
         INSERT INTO scrape_tracking (source, last_scrape_time)
-        VALUES ('Quoted', ${scrapeTime.toISOString()})
+        VALUES ('Quoted', ${easternScrapeTime})
         ON CONFLICT (source)
-        DO UPDATE SET last_scrape_time = ${scrapeTime.toISOString()};
+        DO UPDATE SET last_scrape_time = ${easternScrapeTime};
       `
     ]);
 
