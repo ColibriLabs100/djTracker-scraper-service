@@ -10,8 +10,6 @@ const app = express();
 app.use(express.json());
 const PORT = process.env.PORT || 3000;
 
-const { format } = require('date-fns-tz');
-
 app.get('/', (req, res) => {
   res.send('Hello from your new backend server!');
 });
