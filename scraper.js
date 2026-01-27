@@ -51,8 +51,10 @@ async function scrapeTelegramWeb(lastScrapeTime) {
     const keywords = ['trump:', 'trump-', 'trump -', 'trump - ', '*trump', '*trump:', '*trump -', 'trump says he', 'trump says he\'ll', 'trump says hell'];
     
     const posts = [];
-    $('.tgme_widget_message_text').each((i, elem) => {
-      const text = $(elem).text().trim();
+    $('.tgme_widget_message_wrap').each((i, elem) => {
+      const textElement = $(elem).find('.tgme_widget_message_text');
+      const dateElement = $(elem).find('time.time');
+      const text = textElement.text().trim();
       const lowerCaseText = text.toLowerCase();
       
       // Check if post contains any trump-related keywords
@@ -68,7 +70,7 @@ async function scrapeTelegramWeb(lastScrapeTime) {
         // Remove @WalterBloomberg mention
         cleanText = cleanText.replace(/\(@WalterBloomberg\)/gi, '').trim();
         
-        const date = new Date().toISOString();
+        const date = dateElement.attr('datetime') || new Date().toISOString();
         // Only include posts newer than last scrape time
         if (cleanText && new Date(date) > new Date(lastScrapeTime)) {
           posts.push({ text: cleanText, date });
