@@ -16,7 +16,7 @@ if (!admin.apps.length) {
 const messaging = admin.messaging();
 
 async function sendPushNotification(token, title, body) {
-  if (!process.env.FIREBASE_PROJECT_ID && !process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+  if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
     console.log('Firebase not configured, skipping notification');
     return;
   }

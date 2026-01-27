@@ -34,6 +34,15 @@ async function setupDatabase() {
         last_scrape_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `;
+    await sql`
+      CREATE TABLE IF NOT EXISTS favorites (
+        id SERIAL PRIMARY KEY,
+        post_id INTEGER REFERENCES posts(id) ON DELETE CASCADE,
+        device_id VARCHAR(255) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE (post_id, device_id)
+      );
+    `;
     console.log('Database setup complete.');
   } catch (error) {
     console.error('Error setting up database:', error);
