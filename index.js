@@ -3,6 +3,7 @@ const express = require('express');
 const { scrapeTrumpTruth, scrapeTelegramWeb } = require('./scraper.js');
 const { sql } = require('@vercel/postgres');
 const { sendPushNotification } = require('./firebase.js');
+const { getMarketData } = require('./alphaVantage.js');
 
 const app = express();
 app.use(express.json());
@@ -11,6 +12,17 @@ const PORT = process.env.PORT || 3000;
 app.get('/', (req, res) => {
   res.send('Hello from your new backend server!');
 });
+
+app.get('/api/market-data', async (req, res) => {
+  try {
+    const data = await getMarketData();
+    res.json(data);
+  } catch (error) {
+    console.error('Error getting market data:', error);
+    res.status(500).send('Failed to get market data.');
+  }
+});
+
 
 app.get('/posts/trump', async (req, res) => {
   try {
@@ -33,6 +45,7 @@ app.get('/posts/telegram', async (req, res) => {
 });
 
 async function scrapeAndStorePosts() {
+  const scrapeTime = new Date();
   try {
     // 1. Get last scrape times for each source
     const { rows: tracking } = await sql`
@@ -79,24 +92,21 @@ async function scrapeAndStorePosts() {
       }
     }
 
-    // 4. Update last scrape times
-    if (trumpPosts.length > 0) {
-      await sql`
+    // 4. Update last scrape times for both sources
+    await Promise.all([
+      sql`
         INSERT INTO scrape_tracking (source, last_scrape_time)
-        VALUES ('Truth Social', NOW())
+        VALUES ('Truth Social', ${scrapeTime.toISOString()})
         ON CONFLICT (source)
-        DO UPDATE SET last_scrape_time = NOW();
-      `;
-    }
-    
-    if (telegramPosts.length > 0) {
-      await sql`
+        DO UPDATE SET last_scrape_time = ${scrapeTime.toISOString()};
+      `,
+      sql`
         INSERT INTO scrape_tracking (source, last_scrape_time)
-        VALUES ('Quoted', NOW())
+        VALUES ('Quoted', ${scrapeTime.toISOString()})
         ON CONFLICT (source)
-        DO UPDATE SET last_scrape_time = NOW();
-      `;
-    }
+        DO UPDATE SET last_scrape_time = ${scrapeTime.toISOString()};
+      `
+    ]);
 
     if (newPostsFound) {
       console.log('New posts found, sending notifications...');
@@ -156,6 +166,74 @@ app.post('/api/posts/:id/react', async (req, res) => {
   } catch (error) {
     console.error('Error saving reaction:', error);
     res.status(500).send('Failed to save reaction.');
+  }
+});
+
+app.post('/api/posts/:id/favorite', async (req, res) => {
+  const { id } = req.params;
+  const { deviceId } = req.body;
+
+  if (!deviceId) {
+    return res.status(400).send('deviceId is required.');
+  }
+
+  try {
+    await sql`
+      INSERT INTO favorites (post_id, device_id)
+      VALUES (${parseInt(id)}, ${deviceId})
+      ON CONFLICT (post_id, device_id) DO NOTHING;
+    `;
+    res.status(201).send('Post favorited.');
+  } catch (error) {
+    console.error('Error favoriting post:', error);
+    res.status(500).send('Failed to favorite post.');
+  }
+});
+
+app.delete('/api/posts/:id/favorite', async (req, res) => {
+  const { id } = req.params;
+  const { deviceId } = req.body;
+
+  if (!deviceId) {
+    return res.status(400).send('deviceId is required.');
+  }
+
+  try {
+    await sql`
+      DELETE FROM favorites
+      WHERE post_id = ${parseInt(id)} AND device_id = ${deviceId};
+    `;
+    res.status(200).send('Favorite removed.');
+  } catch (error) {
+    console.error('Error removing favorite:', error);
+    res.status(500).send('Failed to remove favorite.');
+  }
+});
+
+app.get('/api/favorites', async (req, res) => {
+  const { deviceId } = req.query;
+
+  if (!deviceId) {
+    return res.status(400).send('deviceId query parameter is required.');
+  }
+
+  try {
+    const { rows } = await sql`
+      SELECT
+        p.*,
+        COALESCE(SUM(CASE WHEN r.reaction_type = 'like' THEN 1 ELSE 0 END), 0)::int AS likes,
+        COALESCE(SUM(CASE WHEN r.reaction_type = 'laugh' THEN 1 ELSE 0 END), 0)::int AS laughs
+      FROM favorites f
+      JOIN posts p ON f.post_id = p.id
+      LEFT JOIN reactions r ON p.id = r.post_id
+      WHERE f.device_id = ${deviceId}
+      GROUP BY p.id
+      ORDER BY f.created_at DESC;
+    `;
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching favorites:', error);
+    res.status(500).send('Failed to fetch favorites.');
   }
 });
 
