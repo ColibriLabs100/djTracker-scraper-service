@@ -1,5 +1,6 @@
  require('dotenv').config();
 const express = require('express');
+const cors = require('cors');
 const { scrapeTrumpTruth, scrapeTelegramWeb } = require('./scraper.js');
 const { sql } = require('@vercel/postgres');
 const { sendPushNotification } = require('./firebase.js');
@@ -7,6 +8,7 @@ const { getMarketData } = require('./alphaVantage.js');
 const { format } = require('date-fns-tz');
 
 const app = express();
+app.use(cors());
 app.use(express.json());
 const PORT = process.env.PORT || 3000;
 
