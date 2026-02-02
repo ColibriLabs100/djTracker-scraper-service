@@ -249,17 +249,32 @@ app.get('/posts/all', async (req, res) => {
   const { deviceId } = req.query;
 
   try {
-    const { rows } = await sql`
-      SELECT
-        p.*,
-        COALESCE(SUM(CASE WHEN r.reaction_type = 'like' THEN 1 ELSE 0 END), 0)::int AS likes,
-        COALESCE(SUM(CASE WHEN r.reaction_type = 'laugh' THEN 1 ELSE 0 END), 0)::int AS laughs,
-        (SELECT reaction_type FROM reactions WHERE device_id = ${deviceId} AND post_id = p.id) AS userReaction
-      FROM posts p
-      LEFT JOIN reactions r ON p.id = r.post_id
-      GROUP BY p.id
-      ORDER BY p.date DESC;
-    `;
+    let query;
+    if (deviceId) {
+      query = sql`
+        SELECT
+          p.*,
+          COALESCE(SUM(CASE WHEN r.reaction_type = 'like' THEN 1 ELSE 0 END), 0)::int AS likes,
+          COALESCE(SUM(CASE WHEN r.reaction_type = 'laugh' THEN 1 ELSE 0 END), 0)::int AS laughs,
+          (SELECT reaction_type FROM reactions WHERE device_id = ${deviceId} AND post_id = p.id) AS userReaction
+        FROM posts p
+        LEFT JOIN reactions r ON p.id = r.post_id
+        GROUP BY p.id
+        ORDER BY p.date DESC;
+      `;
+    } else {
+      query = sql`
+        SELECT
+          p.*,
+          COALESCE(SUM(CASE WHEN r.reaction_type = 'like' THEN 1 ELSE 0 END), 0)::int AS likes,
+          COALESCE(SUM(CASE WHEN r.reaction_type = 'laugh' THEN 1 ELSE 0 END), 0)::int AS laughs
+        FROM posts p
+        LEFT JOIN reactions r ON p.id = r.post_id
+        GROUP BY p.id
+        ORDER BY p.date DESC;
+      `;
+    }
+    const { rows } = await query;
     res.json(rows);
   } catch (error) {
     console.error('Error fetching all posts:', error);
