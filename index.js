@@ -246,7 +246,7 @@ app.get('/api/favorites', async (req, res) => {
 });
 
 app.get('/api/posts/all', async (req, res) => {
-  const { deviceId } = req.body;
+  const { deviceId } = req.query;
 
   if (!deviceId) {
     return res.status(400).send('deviceId is required.');
