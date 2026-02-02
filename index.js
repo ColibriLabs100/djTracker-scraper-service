@@ -245,25 +245,21 @@ app.get('/api/favorites', async (req, res) => {
   }
 });
 
-app.post('/api/posts/all', async (req, res) => {
-  const { deviceId } = req.body;
-
-  if (!deviceId) {
-    return res.status(400).send('deviceId is required.');
-  }
-
+app.get('/posts/all', async (req, res) => {
   try {
+    // Fetch all posts from the database with reaction counts
     const { rows } = await sql`
       SELECT
         p.*,
         COALESCE(SUM(CASE WHEN r.reaction_type = 'like' THEN 1 ELSE 0 END), 0)::int AS likes,
-        COALESCE(SUM(CASE WHEN r.reaction_type = 'laugh' THEN 1 ELSE 0 END), 0)::int AS laughs,
-        (SELECT reaction_type FROM reactions WHERE device_id = ${deviceId} AND post_id = p.id) AS userReaction
+        COALESCE(SUM(CASE WHEN r.reaction_type = 'laugh' THEN 1 ELSE 0 END), 0)::int AS laughs
       FROM posts p
       LEFT JOIN reactions r ON p.id = r.post_id
       GROUP BY p.id
       ORDER BY p.date DESC;
     `;
+
+    // Return results
     res.json(rows);
   } catch (error) {
     console.error('Error fetching all posts:', error);
