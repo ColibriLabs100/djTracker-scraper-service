@@ -245,8 +245,8 @@ app.get('/api/favorites', async (req, res) => {
   }
 });
 
-app.get('/api/posts/all', async (req, res) => {
-  const { deviceId } = req.query;
+app.post('/api/posts/all', async (req, res) => {
+  const { deviceId } = req.body;
 
   if (!deviceId) {
     return res.status(400).send('deviceId is required.');
@@ -297,5 +297,3 @@ process.on('exit', (code) => {
 server.on('close', () => {
   console.log('Server closed');
 });
-
-
