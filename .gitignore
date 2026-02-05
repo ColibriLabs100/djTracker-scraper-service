@@ -70,3 +70,5 @@ bower_components/
 # Temporary files
 .temp
 .tmp
+# Ignore Firebase admin credentials
+djtracker-64c05-firebase-adminsdk-fbsvc-cf2e5b89cf.json

@@ -4,9 +4,18 @@ const admin = require('firebase-admin');
 if (!admin.apps.length) {
   try {
     console.log('Initializing Firebase...');
-    admin.initializeApp({
-      credential: admin.credential.applicationDefault()
-    });
+    if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
+      // For production environments (like Vercel), use the environment variable
+      const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount)
+      });
+    } else {
+      // For local development, use application default credentials
+      admin.initializeApp({
+        credential: admin.credential.applicationDefault()
+      });
+    }
     console.log('Firebase initialized successfully.');
   } catch (error) {
     console.error('Firebase initialization error:', error);
@@ -16,7 +25,7 @@ if (!admin.apps.length) {
 const messaging = admin.messaging();
 
 async function sendPushNotification(token, title, body) {
-  if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+  if (!admin.apps.length || !admin.apps[0].options.credential) {
     console.log('Firebase not configured, skipping notification');
     return;
   }
