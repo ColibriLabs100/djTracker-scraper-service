@@ -48,7 +48,6 @@ app.get('/posts/telegram', async (req, res) => {
 });
 
 async function scrapeAndStorePosts() {
-  const scrapeTime = new Date();
   try {
     // 1. Get last scrape times for each source
     const { rows: tracking } = await sql`
@@ -99,22 +98,30 @@ async function scrapeAndStorePosts() {
       }
     }
 
-    // 4. Update last scrape times for both sources
-    const easternScrapeTime = format(scrapeTime, "yyyy-MM-dd'T'HH:mm:ss.SSS", { timeZone: 'America/New_York' });
-    await Promise.all([
-      sql`
-        INSERT INTO scrape_tracking (source, last_scrape_time)
-        VALUES ('Truth Social', ${easternScrapeTime})
-        ON CONFLICT (source)
-        DO UPDATE SET last_scrape_time = ${easternScrapeTime};
-      `,
-      sql`
-        INSERT INTO scrape_tracking (source, last_scrape_time)
-        VALUES ('Quoted', ${easternScrapeTime})
-        ON CONFLICT (source)
-        DO UPDATE SET last_scrape_time = ${easternScrapeTime};
-      `
-    ]);
+    // 4. Update last scrape times for both sources if new posts were found
+    if (newPostsFound) {
+      const latestPost = allScrapedPosts.reduce((latest, post) => {
+        const postDate = new Date(post.date);
+        return postDate > latest ? postDate : latest;
+      }, new Date(0));
+
+      const easternScrapeTime = format(latestPost, "yyyy-MM-dd'T'HH:mm:ss.SSS", { timeZone: 'America/New_York' });
+      
+      await Promise.all([
+        sql`
+          INSERT INTO scrape_tracking (source, last_scrape_time)
+          VALUES ('Truth Social', ${easternScrapeTime})
+          ON CONFLICT (source)
+          DO UPDATE SET last_scrape_time = ${easternScrapeTime};
+        `,
+        sql`
+          INSERT INTO scrape_tracking (source, last_scrape_time)
+          VALUES ('Quoted', ${easternScrapeTime})
+          ON CONFLICT (source)
+          DO UPDATE SET last_scrape_time = ${easternScrapeTime};
+        `
+      ]);
+    }
 
     if (newPostsFound) {
       console.log('New posts found, sending notifications...');
