@@ -14,12 +14,15 @@
   "type": "commonjs",
   "dependencies": {
     "@vercel/postgres": "^0.10.0",
-    "axios": "^1.13.3",
-    "cheerio": "^1.1.2",
+    "axios": "^1.13.4",
+    "cheerio": "^1.2.0",
     "cors": "^2.8.6",
     "date-fns-tz": "^3.2.0",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
-    "firebase-admin": "^13.6.0"
+    "firebase-admin": "^13.6.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.11"
   }
 }

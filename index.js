@@ -73,7 +73,7 @@ async function scrapeAndStorePosts() {
       ...telegramPosts.map(p => ({ ...p, source: 'Quoted' }))
     ];
 
-    let newPostsFound = false;
+    const newPosts = [];
 
     // 3. Insert new posts into the database
     for (const post of allScrapedPosts) {
@@ -94,12 +94,15 @@ async function scrapeAndStorePosts() {
       `;
 
       if (result.rowCount > 0) {
-        newPostsFound = true;
+        newPosts.push({
+          author: post.source,
+          content: post.text,
+        });
       }
     }
 
     // 4. Update last scrape times for both sources if new posts were found
-    if (newPostsFound) {
+    if (newPosts.length > 0) {
       const latestPost = allScrapedPosts.reduce((latest, post) => {
         const postDate = new Date(post.date);
         return postDate > latest ? postDate : latest;
@@ -123,15 +126,17 @@ async function scrapeAndStorePosts() {
       ]);
     }
 
-    if (newPostsFound) {
+    if (newPosts.length > 0) {
       console.log('New posts found, sending notifications...');
       // 5. Fetch all device tokens
       const { rows: devices } = await sql`SELECT push_token FROM devices;`;
       const tokens = devices.map(d => d.push_token);
 
       // 6. Send notifications
-      for (const token of tokens) {
-        await sendPushNotification(token, 'New DJT Post!', 'A new post has been detected.');
+      for (const post of newPosts) {
+        for (const token of tokens) {
+          await sendPushNotification(token, post);
+        }
       }
     } else {
       console.log('No new posts found.');
@@ -301,15 +306,6 @@ app.get('/api/cron', async (req, res) => {
 
 const server = app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
-});
-
-process.on('SIGINT', function() {
-  console.log( "\nGracefully shutting down from SIGINT (Ctrl-C)" );
-  process.exit(1);
-});
-
-process.on('exit', (code) => {
-  console.log(`About to exit with code: ${code}`);
 });
 
 server.on('close', () => {

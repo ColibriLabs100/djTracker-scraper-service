@@ -24,16 +24,16 @@ if (!admin.apps.length) {
 
 const messaging = admin.messaging();
 
-async function sendPushNotification(token, title, body) {
+async function sendPushNotification(token, post) {
   if (!admin.apps.length || !admin.apps[0].options.credential) {
     console.log('Firebase not configured, skipping notification');
     return;
   }
   
   const message = {
-    notification: {
-      title: title,
-      body: body,
+    data: {
+      author: post.author,
+      content: post.content,
     },
     token: token,
   };
