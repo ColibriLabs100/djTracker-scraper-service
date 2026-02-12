@@ -139,19 +139,7 @@ async function scrapeAndStorePosts() {
         }
       }
     } else {
-      console.log('No new posts found. Sending test notification for debugging.');
-      // Send a test notification for debugging
-      const { rows: devices } = await sql`SELECT push_token FROM devices;`;
-      const tokens = devices.map(d => d.push_token);
-      if (tokens.length > 0) {
-        const testPost = {
-          author: 'Test Notification',
-          content: 'This is a test notification.',
-        };
-        for (const token of tokens) {
-          await sendPushNotification(token, testPost);
-        }
-      }
+      console.log('No new posts found.');
     }
   } catch (error) {
     console.error('Error scraping and storing posts:', error);
