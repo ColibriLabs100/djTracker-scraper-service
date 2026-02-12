@@ -127,19 +127,37 @@ async function scrapeAndStorePosts() {
     }
 
     if (newPosts.length > 0) {
-      console.log('New posts found, sending notifications...');
+      console.log(`${newPosts.length} new posts found. Preparing to send notifications.`);
       // 5. Fetch all device tokens
       const { rows: devices } = await sql`SELECT push_token FROM devices;`;
       const tokens = devices.map(d => d.push_token);
+      console.log(`Found ${tokens.length} device tokens.`);
 
       // 6. Send notifications
-      for (const post of newPosts) {
-        for (const token of tokens) {
-          await sendPushNotification(token, post);
+      if (tokens.length > 0) {
+        console.log('Sending notifications...');
+        for (const post of newPosts) {
+          for (const token of tokens) {
+            await sendPushNotification(token, post);
+          }
         }
       }
     } else {
-      console.log('No new posts found.');
+      console.log('No new posts found. Sending test notification for debugging.');
+      // Send a test notification for debugging
+      const { rows: devices } = await sql`SELECT push_token FROM devices;`;
+      const tokens = devices.map(d => d.push_token);
+      console.log(`Found ${tokens.length} device tokens for test notification.`);
+      if (tokens.length > 0) {
+        console.log('Sending test notification...');
+        const testPost = {
+          author: 'Test Notification',
+          content: 'This is a test notification.',
+        };
+        for (const token of tokens) {
+          await sendPushNotification(token, testPost);
+        }
+      }
     }
   } catch (error) {
     console.error('Error scraping and storing posts:', error);
