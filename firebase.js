@@ -1,44 +1,40 @@
 const admin = require('firebase-admin');
 
-let messaging;
-
+// Ensure that a Firebase app is not already initialized
 if (!admin.apps.length) {
   try {
     console.log('Initializing Firebase...');
     if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
-      console.log('Using FIREBASE_SERVICE_ACCOUNT_JSON from environment variable.');
+      // For production environments (like Vercel), use the environment variable
       const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount)
       });
-    } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
-      console.log('Using GOOGLE_APPLICATION_CREDENTIALS_JSON from environment variable.');
-      const serviceAccount = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount)
-      });
     } else {
-      console.log('Using Application Default Credentials.');
+      // For local development, use application default credentials
       admin.initializeApp({
         credential: admin.credential.applicationDefault()
       });
     }
     console.log('Firebase initialized successfully.');
-    messaging = admin.messaging();
   } catch (error) {
     console.error('Firebase initialization error:', error);
   }
-} else {
-  messaging = admin.messaging();
 }
 
+const messaging = admin.messaging();
+
 async function sendPushNotification(token, post) {
-  if (!messaging) {
+  if (!admin.apps.length || !admin.apps[0].options.credential) {
     console.log('Firebase not configured, skipping notification');
     return;
   }
   
   const message = {
+    notification: {
+      title: post.author,
+      body: post.content,
+    },
     data: {
       author: post.author,
       content: post.content,

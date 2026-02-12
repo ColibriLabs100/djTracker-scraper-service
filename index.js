@@ -127,19 +127,15 @@ async function scrapeAndStorePosts() {
     }
 
     if (newPosts.length > 0) {
-      console.log(`${newPosts.length} new posts found. Preparing to send notifications.`);
+      console.log('New posts found, sending notifications...');
       // 5. Fetch all device tokens
       const { rows: devices } = await sql`SELECT push_token FROM devices;`;
       const tokens = devices.map(d => d.push_token);
-      console.log(`Found ${tokens.length} device tokens.`);
 
       // 6. Send notifications
-      if (tokens.length > 0) {
-        console.log('Sending notifications...');
-        for (const post of newPosts) {
-          for (const token of tokens) {
-            await sendPushNotification(token, post);
-          }
+      for (const post of newPosts) {
+        for (const token of tokens) {
+          await sendPushNotification(token, post);
         }
       }
     } else {
@@ -147,9 +143,7 @@ async function scrapeAndStorePosts() {
       // Send a test notification for debugging
       const { rows: devices } = await sql`SELECT push_token FROM devices;`;
       const tokens = devices.map(d => d.push_token);
-      console.log(`Found ${tokens.length} device tokens for test notification.`);
       if (tokens.length > 0) {
-        console.log('Sending test notification...');
         const testPost = {
           author: 'Test Notification',
           content: 'This is a test notification.',
