@@ -294,7 +294,14 @@ app.get('/posts/all', async (req, res) => {
   }
 });
 
-app.get('/api/cron', async (req, res) => {
+app.post('/api/cron', async (req, res) => {
+  const authHeader = req.headers.authorization;
+  const expectedToken = `Bearer ${process.env.AUTOMATION_SECRET}`;
+
+  if (!authHeader || authHeader !== expectedToken) {
+    return res.status(401).send('Unauthorized');
+  }
+
   try {
     await scrapeAndStorePosts();
     res.status(200).send('Cron job completed successfully.');

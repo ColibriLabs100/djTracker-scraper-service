@@ -1,0 +1,13 @@
+name: Trigger Vercel Function
+
+on:
+  schedule:
+    # Runs every 5 minutes
+    - cron: '*/5 * * * *'
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Vercel Function
+        run: curl -X POST "https://dj-tracker-scraper-service.vercel.app/api/cron" -H "Authorization: Bearer ${{ secrets.AUTOMATION_SECRET }}"
