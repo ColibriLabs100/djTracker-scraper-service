@@ -10,4 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Trigger Vercel Function
-        run: curl -X POST "https://dj-tracker-scraper-service.vercel.app/api/cron" -H "Authorization: Bearer ${{ secrets.AUTOMATION_SECRET }}"
+        env:
+          AUTOMATION_SECRET: ${{ secrets.AUTOMATION_SECRET }}
+        run: |
+          curl -X POST "https://dj-tracker-scraper-service.vercel.app/api/cron" -H "Authorization: Bearer $AUTOMATION_SECRET"
