@@ -1,6 +1,7 @@
- require('dotenv').config();
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const { createHash } = require('crypto');
 const { scrapeTrumpTruth, scrapeTelegramWeb } = require('./scraper.js');
 const { sql } = require('@vercel/postgres');
 const { sendPushNotification } = require('./firebase.js');
@@ -83,14 +84,16 @@ async function scrapeAndStorePosts() {
         continue;
       }
       
+      const text_hash = createHash('md5').update(post.text).digest('hex');
+      
       // Convert to Eastern Time for storing in the DB
       const easternTime = format(postDate, "yyyy-MM-dd'T'HH:mm:ss.SSSXXX", { timeZone: 'America/New_York' });
       
       // The sql template helper automatically sanitizes inputs
       const result = await sql`
-        INSERT INTO posts (text, date, source)
-        VALUES (${post.text}, ${easternTime}, ${post.source})
-        ON CONFLICT (text, date, source) DO NOTHING;
+        INSERT INTO posts (text, text_hash, date, source)
+        VALUES (${post.text}, ${text_hash}, ${easternTime}, ${post.source})
+        ON CONFLICT (text_hash, date, source) DO NOTHING;
       `;
 
       if (result.rowCount > 0) {
